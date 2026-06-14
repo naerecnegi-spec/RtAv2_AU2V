@@ -1,0 +1,323 @@
+--[[
+
+    RtAv2(v1.00)
+
+---------------------------------------------------------------------------------------------------
+
+    @RtAv2.anm
+
+---------------------------------------------------------------------------------------------------
+
+    rppを読み込んで反転やら移動やら回転やらをするスクリプト
+    RtAv2の基本的なスクリプト
+    
+---------------------------------------------------------------------------------------------------
+
+    使い方などはこのサイトを参考にしてください。
+    https://scrapbox.io/nanikani-shugo/RtAv2
+
+---------------------------------------------------------------------------------------------------
+
+    2019/03/25  v1-1.00     REAPER to AviUtl配布
+
+    2021/08/10  v2-1.00     完成
+
+    by.7539
+]]
+
+
+
+
+@rpp読み込み
+
+--track0:再読込,0,1,0,1
+--file:
+
+local RtA=require("RtAv2")
+local RF=require("RtAv2Function")
+
+local function log_rpp(msg)
+    if _G.print then
+        _G.print("[RppLoad] " .. tostring(msg))
+    end
+    pcall(function()
+        local log_path = "C:\\ProgramData\\aviutl2\\Log\\rtav2_debug.log"
+        local f = io.open(log_path, "a")
+        if f then
+            f:write("[" .. os.date("%Y-%m-%d %H:%M:%S") .. "] [RppLoad] " .. tostring(msg) .. "\n")
+            f:close()
+        end
+    end)
+end
+
+log_rpp("Start loading. file = " .. tostring(file))
+
+if(file==nil or file=="")then
+    log_rpp("file variable is empty or nil.")
+    return
+end
+
+local is_open = false
+local success_open, err_open = pcall(function() is_open = RtA.isOpen(file) end)
+if not success_open then
+    log_rpp("RtA.isOpen failed with error: " .. tostring(err_open))
+    return
+end
+
+if not is_open then 
+    log_rpp("RtA.isOpen(file) returned false for path: " .. tostring(file))
+    return
+end
+
+RtAv2FunctionData=nil
+RtAv2RppData = RtAv2RppData or {}
+
+if(RtAv2ReadNum==nil or RtAv2ReadNum~=obj.track0)then
+    log_rpp("Parsing RPP file: " .. tostring(file))
+    local success_parse, res_parse = pcall(RtA.getRpp, file)
+    if success_parse then
+        RtAv2RppData = res_parse
+        log_rpp("Parse successful. Tempo = " .. tostring(RtAv2RppData.tempo))
+        -- RPPファイルパスを共有ファイルに書き出す
+        local log_path = "C:\\ProgramData\\aviutl2\\Log\\temp_rpp_path.txt"
+        local path_f = io.open(log_path, "w")
+        if path_f then
+            path_f:write(file)
+            path_f:close()
+            log_rpp("Successfully wrote path to temp_rpp_path.txt")
+        else
+            log_rpp("Failed to open temp_rpp_path.txt for writing.")
+        end
+    else
+        log_rpp("RtA.getRpp failed with error: " .. tostring(res_parse))
+    end
+end
+RtAv2ReadNum=obj.track0
+
+
+
+
+@初期化
+--track0:基準音程,-36,36,0
+--track1:長さms,-16,100000,0
+local RF=require("RtAv2Function")
+local RtA=require("RtAv2")
+
+local function log_init(msg)
+    if _G.print then
+        _G.print("[Init] " .. tostring(msg))
+    end
+    pcall(function()
+        local log_path = "C:\\ProgramData\\aviutl2\\Log\\rtav2_debug.log"
+        local f = io.open(log_path, "a")
+        if f then
+            f:write("[" .. os.date("%Y-%m-%d %H:%M:%S") .. "] [Init] " .. tostring(msg) .. "\n")
+            f:close()
+        end
+    end)
+end
+
+-- キャッシュファイルから共有パスを読み込み、パースする
+if(RtAv2RppData==nil)then
+    local log_path = "C:\\ProgramData\\aviutl2\\Log\\temp_rpp_path.txt"
+    local path_f = io.open(log_path, "r")
+    if path_f then
+        local shared_path = path_f:read("*l")
+        path_f:close()
+        log_init("Read shared path: " .. tostring(shared_path))
+        if shared_path and shared_path ~= "" then
+            local success_parse, res_parse = pcall(RtA.getRpp, shared_path)
+            if success_parse then
+                RtAv2RppData = res_parse
+                log_init("Parse successful from shared path. Tempo = " .. tostring(RtAv2RppData.tempo))
+            else
+                log_init("Failed to parse shared path: " .. tostring(res_parse))
+            end
+        end
+    else
+        log_init("temp_rpp_path.txt not found or could not be opened.")
+    end
+end
+
+if(RtAv2RppData==nil)then
+    log_init("RtAv2RppData is nil, aborting init.")
+    return
+end
+
+
+local pich=obj.track0
+local len=obj.track1/1000
+if(len<0)then
+    len=(60/RtAv2RppData.tempo) /-len
+end
+RF.RtAv2DataInit()
+RF.setPichNum(pich)
+RF.setLengthNum(len)
+log_init("Init completed successfully. Pitch = " .. tostring(pich) .. ", Length = " .. tostring(len))
+
+
+
+
+@描画
+
+
+--track0:track,1,100,1,1
+--track1:開始位置,-1,100,0,1
+--dialog:track,_1=nil
+
+local RtA=require("RtAv2")
+local RF=require("RtAv2Function")
+
+local function log_error(msg)
+    if _G.print then
+        _G.print("[Draw] " .. tostring(msg))
+    end
+    pcall(function()
+        local log_path = "C:\\ProgramData\\aviutl2\\Log\\rtav2_debug.log"
+        local f = io.open(log_path, "a")
+        if f then
+            f:write("[" .. os.date("%Y-%m-%d %H:%M:%S") .. "] [Draw] " .. tostring(msg) .. "\n")
+            f:close()
+        end
+    end)
+end
+
+-- キャッシュファイルから共有パスを読み込み、パースする
+if(RtAv2RppData==nil)then
+    local log_path = "C:\\ProgramData\\aviutl2\\Log\\temp_rpp_path.txt"
+    local path_f = io.open(log_path, "r")
+    if path_f then
+        local shared_path = path_f:read("*l")
+        path_f:close()
+        if shared_path and shared_path ~= "" then
+            RtAv2RppData = RtA.getRpp(shared_path)
+        end
+    end
+end
+
+if(RtAv2RppData==nil)then     
+    return
+end
+local RtAv2Data = RF.RtAv2Data
+if(RtAv2Data==nil)then
+    return
+end
+
+
+
+local tracks = _1 or nil
+
+
+
+
+tracks = (RtA.type(tracks)=="number") and {tracks} or tracks
+tracks = (RtA.type(tracks)=="table") and tracks or {obj.track0}
+
+local tarckTime=obj.track1
+
+
+local d=RtAv2RppData
+
+local info={}
+info.track=obj.track0
+info.time=obj.time
+
+-- 開始位置のインデックス安全化
+if(tarckTime>0)then
+    local target_track = tracks[1]
+    if RtAv2RppData.track and RtAv2RppData.track[target_track] then
+        local tr = RtAv2RppData.track[target_track]
+        if tr.item and tr.item[tarckTime] then
+            info.time = info.time + tr.item[tarckTime].pos
+        else
+            log_error("Index Out of Bounds: Track " .. tostring(target_track) .. " has no item at index " .. tostring(tarckTime))
+        end
+    else
+        log_error("Track Not Found: Track " .. tostring(target_track) .. " does not exist in RPP data.")
+    end
+elseif(tarckTime==-1)then
+    if (package.loaded.rikky_module) then
+        info.time = rikky_module.getinfo("frame") / obj.framerate
+    else
+        local f1,f2 = pcall(require,"rikky_module")
+        if (f1) then
+            info.time = rikky_module.getinfo("frame") / obj.framerate
+        end
+    end
+end
+info.effect={}
+
+local num=RtAv2Data.i
+
+if(num==-1)then
+    local target_track = tracks[1]
+    if RtAv2RppData.track and RtAv2RppData.track[target_track] and RtAv2RppData.track[target_track].item then
+        num=#RtAv2RppData.track[target_track].item
+    else
+        num=0
+        log_error("Cannot determine item count: Track " .. tostring(target_track) .. " does not exist.")
+    end
+end
+
+
+
+
+-- キャッシュバッファへの退避
+local success_init_cb, err_init_cb = pcall(obj.copybuffer, "cache:RtAv2Cache", "obj")
+if not success_init_cb then
+    log_error("Failed to copy obj to cache:RtAv2Cache: " .. tostring(err_init_cb))
+end
+
+for h=1,num do
+
+    -- 毎回元のきれいな画像バッファを復元する
+    local success_cb, err_cb = pcall(obj.copybuffer, "obj", "cache:RtAv2Cache")
+    if not success_cb then
+        log_error("Failed to restore obj from cache:RtAv2Cache at loop " .. tostring(h) .. ": " .. tostring(err_cb))
+    end
+
+    info.i=h
+    info.track=tracks[(h-1)%#tracks+1]
+    info.effect={}
+
+    local drawf=true
+
+    for i=1,#RtAv2Data.ff do
+        data=RtAv2Data.ff[i]
+        local success_ff, res_ff = pcall(data.f, d, info, data.v)
+        if success_ff then
+            drawf = res_ff
+        else
+            drawf = false
+            log_error("Error in ff function [" .. tostring(i) .. "] at loop " .. tostring(h) .. ": " .. tostring(res_ff))
+        end
+        if(drawf==false)then break end
+    end
+    if(drawf==true)then 
+
+        for i=1,#RtAv2Data.f do
+            data=RtAv2Data.f[i]
+            local success_f, name, e = pcall(data.f, d, info, data.v)
+            if success_f then
+                if name ~= nil then
+                    info.effect[name]=e
+                end
+            else
+                log_error("Error in f function [" .. tostring(i) .. "] at loop " .. tostring(h) .. ": " .. tostring(name))
+            end
+        end
+
+        for i=1,#RtAv2Data.draw do
+            data=RtAv2Data.draw[i]
+            local success_draw, err_draw = pcall(data.f, d, info, data.v)
+            if not success_draw then
+                log_error("Error in draw function [" .. tostring(i) .. "] at loop " .. tostring(h) .. ": " .. tostring(err_draw))
+            end
+        end
+    end
+
+
+end
+
+
+RF.RtAv2Data=nil

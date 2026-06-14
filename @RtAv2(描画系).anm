@@ -1,0 +1,388 @@
+--[[
+
+
+
+    RtAv2(v1.00)
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    @RtAv2(描画系).anm
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    rppを読み込んで反転やら移動やら回転やらをするスクリプト
+
+    RtAv2の特殊な描画系のスクリプト
+
+    
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    使い方などはこのサイトを参考にしてください。
+
+    https://scrapbox.io/nanikani-shugo/RtAv2
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    2019/03/25  v1-1.00     REAPER to AviUtl配布
+
+
+
+    2021/08/10  v2-1.00     完成
+
+
+
+    by.7539
+
+]]
+
+
+
+
+
+@両端クリッピング
+
+
+
+--track0:x分割数,1,25,1,0.01
+
+--track1:y分割数,1,25,1,0.01
+
+--track2:x,-1000,1000,0
+
+--track3:y,-1000,1000,0
+
+--dialog:最大x,_1=0;最大y,_2=0
+
+local RF=require("RtAv2Function")
+
+
+
+local nx=obj.track0
+
+local ny=obj.track1
+
+local x=obj.track2
+
+local y=obj.track3
+
+
+
+local ix=math.ceil(nx)
+
+local iy=math.ceil(ny)
+
+
+
+
+
+
+
+local maxX=_1 or 0
+
+if(maxX==0)then
+
+    maxX=ix
+
+end
+
+local maxY=_2 or 0
+
+if(maxY==0)then
+
+    maxY=iy
+
+end
+
+
+
+
+
+
+
+local function ff(rpp,info,data)
+
+    local i=info.i
+
+    local nnx,nny=math.ceil(data.nx),math.ceil(data.ny)
+
+    local pxi=(i-1)%nnx+1
+
+    local pyi=math.ceil(i/nnx)
+
+    if(nnx<pxi or nny<pyi)then return false end
+
+    return true
+
+end
+
+
+
+local function f(rpp,info,data)
+
+    local sw,sh=obj.screen_w,obj.screen_h
+
+
+
+    local i=info.i
+
+    
+
+    local nnx,nny=math.ceil(data.nx),math.ceil(data.ny)
+
+    
+
+    local pxi=(i-1)%nnx+1
+
+    local pyi=math.ceil(i/nnx)
+
+
+
+    local px,py=data.nx%1,data.ny%1
+
+    if(px==0)then px=1 end
+
+    if(py==0)then py=1 end
+
+
+
+
+
+    local before_nx=sw/math.floor(data.nx)
+
+    if(pxi==nnx)then
+
+        before_nx=0
+
+    end
+
+    local after_nx=sw/nnx
+
+
+
+    local sizex=RF.AtoB(before_nx,after_nx,px)
+
+
+
+
+
+    local before_ny=sh/math.floor(data.ny)
+
+    if(pyi==nny)then
+
+        before_ny=0
+
+    end
+
+    local after_ny=sh/nny
+
+    local sizey=RF.AtoB(before_ny,after_ny,py)
+
+    
+
+    local reSize=1
+
+    if(sw/sh>obj.w/obj.h)then
+
+        reSize=(sw/obj.w)
+
+    else
+
+        reSize=(sh/obj.h)
+
+    end
+
+
+
+    obj.effect("リサイズ","拡大率",reSize*100)
+
+    
+
+    local h1=0
+
+    local h2=0
+
+    if(info.effect.inversion~=nil)then
+
+        h1=info.effect.inversion[1] or 0
+
+        h2=info.effect.inversion[2] or 0
+
+    end
+
+
+
+    local ppx=data.x*(math.min(obj.w/sizex,2)-1)
+
+
+
+    local ppy=data.y*(math.max(obj.h/sizey,2)-1)
+
+    local u0=obj.w/2  +-sizex/2 + (ppx * ((h1==1) and -1 or 1)) 
+
+    local u1=obj.w/2  + sizex/2 + (ppx * ((h1==1) and -1 or 1)) 
+
+    local v0=obj.h/2  +-sizey/2 + (ppy * ((h2==1) and -1 or 1)) 
+
+    local v1=obj.h/2  + sizey/2 + (ppy * ((h2==1) and -1 or 1)) 
+
+
+
+    local x0=(pxi-1)*sizex - sw/2
+
+    local x1=(pxi  )*sizex - sw/2
+
+
+
+    local y0=(pyi-1)*sizey - sh/2
+
+    local y1=(pyi  )*sizey - sh/2
+
+
+
+    if(pxi==nnx)then
+
+        x0= sw/2 - sizex
+
+        x1= sw/2
+
+    end
+
+
+
+    if(pyi==nny)then
+
+        y0= sh/2 - sizey
+
+        y1= sh/2
+
+    end
+
+    obj.drawpoly(   x0 , y0 , 0 , 
+
+                    x1 , y0 , 0 , 
+
+                    x1 , y1 , 0 , 
+
+                    x0 , y1 , 0 , 
+
+                    u0 , v0 , 
+
+                    u1 , v0 , 
+
+                    u1 , v1 , 
+
+                    u0 , v1)
+
+
+
+end
+
+
+
+
+
+RF.setDrawNum(maxX*maxY)
+
+RF.addFirstFunction(ff,{nx=nx,ny=ny,x=x,y=y,mx=maxX,my=maxY})
+
+RF.addDrawFunction(f,{nx=nx,ny=ny,x=x,y=y,mx=maxX,my=maxY})
+
+
+
+
+
+@複数描画
+
+--track0:範囲ms,0,10000,1000
+
+--track1:前範囲ms,0,10000,0
+
+local RF=require("RtAv2Function")
+
+
+
+local range = obj.track0/1000
+
+local range2 = obj.track1/1000
+
+
+
+
+
+
+
+
+
+
+
+local function ff(rpp,info,data)
+
+    
+
+    if(info.time+data.range2<rpp.track[info.track].item[info.i].pos)then
+
+        return false
+
+    end
+
+    if(info.time-data.range>rpp.track[info.track].item[info.i].pos)then
+
+        return false
+
+    end
+
+    
+
+    return true
+
+end
+
+
+
+local function f(rpp,info,data)
+
+    obj.draw()
+
+    obj.ox,obj.oy,obj.oz=0,0,0
+
+    obj.rx,obj.ry,obj.rz=0,0,0
+
+    obj.alpha=1
+
+    obj.zoom=1
+
+    obj.aspect=0
+
+end
+
+
+
+
+
+
+
+RF.setDrawNum(-1)
+
+
+
+RF.addFirstFunction(ff,{range=range,range2=range2})
+
+RF.addDrawFunction(f,{})
+
+
+

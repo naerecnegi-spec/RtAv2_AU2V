@@ -1,0 +1,793 @@
+--[[
+
+
+
+    RtAv2(v1.00)
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    @RtAv2(エフェクト).anm
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    rppを読み込んで反転やら移動やら回転やらをするスクリプト
+
+    RtAv2のエフェクト関係のスクリプト
+
+    
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    使い方などはこのサイトを参考にしてください。
+
+    https://scrapbox.io/nanikani-shugo/RtAv2
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    2019/03/25  v1-1.00     REAPER to AviUtl配布
+
+
+
+    2021/08/10  v2-1.00     完成
+
+
+
+    by.7539
+
+]]
+
+
+
+
+
+
+
+@反転
+
+--dialog:左右反転,_1="01";上下反転,_2="";輝度反転,_3="";色相反転,_4="";透明度反転,_5="";ターゲット,_6="以降ターゲット";左右ﾀｰｹﾞｯﾄ,_7={0};上下ﾀｰｹﾞｯﾄ,_8={0};輝度ﾀｰｹﾞｯﾄ,_9={0};色相ﾀｰｹﾞｯﾄ,_10={0};透明度ﾀｰｹﾞｯﾄ,_11={0};音程/chk,_12=0;オプション,_13=0;
+
+
+
+
+
+local RF=require("RtAv2Function")
+
+local RtA=require("RtAv2")
+
+
+
+local h1 = _1 or "01"
+
+local h2 = _2 or "0"
+
+local h3 = _3 or "0"
+
+local h4 = _4 or "0"
+
+local h5 = _5 or "0"
+
+
+
+h1 = (h1=="") and "0" or h1
+
+h2 = (h2=="") and "0" or h2
+
+h3 = (h3=="") and "0" or h3
+
+h4 = (h4=="") and "0" or h4
+
+h5 = (h5=="") and "0" or h5
+
+
+
+local t1 = _7  or {0}
+
+local t2 = _8  or {0}
+
+local t3 = _9  or {0}
+
+local t4 = _10 or {0}
+
+local t5 = _11 or {0}
+
+
+
+t1 = (RtA.type(t1)=="number") and {t1} or t1
+
+t2 = (RtA.type(t2)=="number") and {t2} or t2
+
+t3 = (RtA.type(t3)=="number") and {t3} or t3
+
+t4 = (RtA.type(t4)=="number") and {t4} or t4
+
+t5 = (RtA.type(t5)=="number") and {t5} or t5
+
+
+
+local pich=_12 or 0
+
+local option=_13 or 0
+
+local function  f(rpp,info,data)
+
+    local track=info.track
+
+    local effect={"左右反転","上下反転","輝度反転","色相反転","透明度反転"}
+
+    local e=info.effect.inversion or {0,0,0,0,0}
+
+    for j=1,#effect do
+
+        for k=1,#data.t[j] do
+
+            local c1,c2=RF.timeItemNumTarget(data.t[j][k],rpp.track,info,data.pich,data.option)
+            if(c1==false or c1==0)then break end
+            local ii= RF.s2nc(data.h[j],c1)
+
+            if(data.option==nil or data.option==0)then
+
+                obj.effect("反転",effect[j],ii)
+
+                if(e[j]~=ii)then
+
+                    e[j]=1
+
+                else
+
+                    e[j]=0
+
+                end
+
+            elseif(data.option==1)then
+
+                if(e[j]~=ii)then
+
+                    obj.effect("反転",effect[j],1)
+
+                    e[j]=ii
+
+                end
+
+            end
+
+
+
+        end
+
+    end
+
+    return "inversion",e
+
+end
+
+
+
+
+
+
+
+
+
+
+
+RF.addFunction(f,{h={h1,h2,h3,h4,h5},t={t1,t2,t3,t4,t5},pich=pich,option=option})
+
+
+
+
+
+
+
+
+
+--[[
+
+    設定値になるまでの範囲
+
+    0でそれぞれのアイテムの長さ
+
+#####################################################################
+
+    0 : 何もなし
+
+    1 : 矩形波
+
+    2 : 0から設定値へ広がる
+
+    3 : 設定値から0へ戻る　　
+
+    4 : 前の値と繋げる
+
+#####################################################################
+
+    0 : 0をかける
+
+    1 : 正の値
+
+    2 : 負の値
+
+    3 : 音程をかけた正の値
+
+    4 : 音程をかけた負の値
+
+    5 : アイテム順をかけた正の値
+
+    6 : アイテム順をかけた負の値
+
+#####################################################################
+
+    イージングの値
+
+#####################################################################
+
+    仮想バッファを使ってオブジェクトのサイズを固定
+
+#####################################################################
+
+    0 : 全てのトラック,描画するもの全てが対象
+
+    1以上 : そのトラック番号のみ
+
+    1以下 : その値の絶対値の順番に描画されるもののみ
+
+#####################################################################
+
+    音程が連続で同じ場合,挙動を同じにする
+
+
+
+
+
+
+
+]]
+
+@座標
+
+--track0:x,-4000,4000,0
+
+--track1:y,-4000,4000,0
+
+--track2:z,-4000,4000,0
+
+--track3:範囲ms,0,10000,0
+
+--dialog:波形種類-x,_1="1";-y,_2="1";-z,_3="1";乗算種類-x,_4="01";-y,_5="01";-z,_6="01";イージング-X,_7=1;-y,_8=1;-z,_9=1;サイズ固定/chk,_10=0;対象-x,_11={0};-y,_12={0};-z,_13={0};音程/chk,_14=0;オプション,_15=0;
+
+
+
+local RF=require("RtAv2Function")
+
+local RtA=require("RtAv2")
+
+
+
+local x,y,z = obj.track0,obj.track1,obj.track2
+
+local range = obj.track3/1000
+
+
+
+local px,py,pz = _1 or "0",_2 or "0",_3 or "0"
+
+px,py,pz = (px=="") and "0" or px , (py=="") and "0" or py , (pz=="") and "0" or pz
+
+
+
+local hx,hy,hz = _4 or "0",_5 or "0",_6 or "0"
+
+hx,hy,hz = (hx=="") and "0" or hx , (hy=="") and "0" or hy , (hz=="") and "0" or hz
+
+
+
+local ex,ey,ez = _7 or  1 ,_8 or  1 ,_9 or  1
+
+
+
+local fixed = _10 or 0
+
+
+
+local tx,ty,tz = _11  or {0},_12  or {0},_13  or {0}
+
+tx = (RtA.type(tx)=="number") and {tx} or tx
+
+ty = (RtA.type(ty)=="number") and {ty} or ty
+
+tz = (RtA.type(tz)=="number") and {tz} or tz
+
+
+
+local pich=_14 or 0
+
+local option=_15 or 0
+
+
+
+
+
+local function  f(rpp,info,data)
+
+
+
+    local pos=RF.getXYZ(rpp,info,data)
+
+    
+
+    obj.ox=obj.ox+pos[1]
+
+    obj.oy=obj.oy+pos[2]
+
+    obj.oz=obj.oz+pos[3]
+
+
+
+    if(data.fixed~=0)then
+
+        RF.draw()
+
+    end
+
+
+
+end
+
+
+
+local v={
+
+            p={px,py,pz},
+
+            h={hx,hy,hz},
+
+            e={ex,ey,ez},
+
+            t={tx,ty,tz},
+
+            range=range,fixed=fixed,pich=pich,
+
+            option=option,
+
+            v={x,y,z},
+
+        }
+
+
+
+RF.addFunction(f,v)
+
+
+
+
+
+@回転
+
+--track0:x,-720,720,0
+
+--track1:y,-720,720,0
+
+--track2:z,-720,720,0
+
+--track3:範囲ms,0,10000,0
+
+--dialog:波形種類-x,_1="1";-y,_2="1";-z,_3="1";乗算種類-x,_4="01";-y,_5="01";-z,_6="01";イージング-X,_7=1;-y,_8=1;-z,_9=1;サイズ固定/chk,_10=0;対象-x,_11={0};-y,_12={0};-z,_13={0};音程/chk,_14=0;オプション,_15=0;
+
+
+
+local RF=require("RtAv2Function")
+
+local RtA=require("RtAv2")
+
+
+
+local x,y,z = obj.track0,obj.track1,obj.track2
+
+local range = obj.track3/1000
+
+
+
+local px,py,pz = _1 or "0",_2 or "0",_3 or "0"
+
+px,py,pz = (px=="") and "0" or px , (py=="") and "0" or py , (pz=="") and "0" or pz
+
+
+
+local hx,hy,hz = _4 or "0",_5 or "0",_6 or "0"
+
+hx,hy,hz = (hx=="") and "0" or hx , (hy=="") and "0" or hy , (hz=="") and "0" or hz
+
+
+
+local ex,ey,ez = _7 or  1 ,_8 or  1 ,_9 or  1
+
+
+
+local fixed = _10 or 0
+
+
+
+local tx,ty,tz = _11  or {0},_12  or {0},_13  or {0}
+
+tx = (RtA.type(tx)=="number") and {tx} or tx
+
+ty = (RtA.type(ty)=="number") and {ty} or ty
+
+tz = (RtA.type(tz)=="number") and {tz} or tz
+
+
+
+local pich=_14 or 0
+
+local option=_15 or 0
+
+
+
+
+
+local function  f(rpp,info,data)
+
+    
+
+    local pos=RF.getXYZ(rpp,info,data)
+
+
+
+    obj.rx=obj.rx+pos[1]
+
+    obj.ry=obj.ry+pos[2]
+
+    obj.rz=obj.rz+pos[3]
+
+
+
+    if(data.fixed~=0)then
+
+        RF.draw()
+
+    end
+
+end
+
+
+
+local v={
+
+            p={px,py,pz},
+
+            h={hx,hy,hz},
+
+            e={ex,ey,ez},
+
+            t={tx,ty,tz},
+
+            range=range,fixed=fixed,pich=pich,
+
+            option=option,
+
+            v={x,y,z},
+
+        }
+
+
+
+RF.addFunction(f,v)
+
+
+
+
+
+
+
+@拡大率
+
+--track0:拡大率,-1000,1000,0
+
+--track1:x,-1000,1000,0
+
+--track2:y,-1000,1000,0
+
+--track3:範囲ms,0,10000,0
+
+--dialog:波形種類-率,_1="1";-x,_2="1";-y,_3="1";乗算種類-率,_4="01";-x,_5="01";-y,_6="01";イージング-率,_7=1;-x,_8=1;-y,_9=1;サイズ固定/chk,_10=0;対象-率,_11={0};-x,_12={0};-y,_13={0};音程/chk,_14=0;オプション,_15=0;
+
+
+
+local RF=require("RtAv2Function")
+
+local RtA=require("RtAv2")
+
+
+
+
+
+--local x,y,z = obj.track0/100,obj.track1/100,obj.track2/100
+
+local x,y,z = (obj.track0),(obj.track1),(obj.track2)
+
+local range = obj.track3/1000
+
+
+
+local px,py,pz = _1 or "0",_2 or "0",_3 or "0"
+
+px,py,pz = (px=="") and "0" or px , (py=="") and "0" or py , (pz=="") and "0" or pz
+
+
+
+local hx,hy,hz = _4 or "0",_5 or "0",_6 or "0"
+
+hx,hy,hz = (hx=="") and "0" or hx , (hy=="") and "0" or hy , (hz=="") and "0" or hz
+
+
+
+local ex,ey,ez = _7 or  1 ,_8 or  1 ,_9 or  1
+
+
+
+local fixed = _10 or 0
+
+
+
+local tx,ty,tz = _11  or {0},_12  or {0},_13  or {0}
+
+tx = (RtA.type(tx)=="number") and {tx} or tx
+
+ty = (RtA.type(ty)=="number") and {ty} or ty
+
+tz = (RtA.type(tz)=="number") and {tz} or tz
+
+
+
+local pich=_14 or 0
+
+local option=_15 or 0
+
+
+
+
+
+local function  f(rpp,info,data)
+
+    
+
+    local pos=RF.getXYZ(rpp,info,data)
+
+
+
+    local zm,zx,zy=RF.ZOOM(pos[1]),RF.ZOOM(pos[2]),RF.ZOOM(pos[3])
+
+    if(zx>=zy)then
+
+        obj.zoom=zx*zm* obj.zoom
+
+        obj.aspect = zy/zx -1
+
+    else
+
+        obj.zoom=zy*zm* obj.zoom
+
+        obj.aspect = -zx/zy +1
+
+    end
+
+
+
+    if(data.fixed~=0)then
+
+        RF.draw()
+
+    end
+
+end
+
+
+
+local v={
+
+            p={px,py,pz},
+
+            h={hx,hy,hz},
+
+            e={ex,ey,ez},
+
+            t={tx,ty,tz},
+
+            range=range,fixed=fixed,pich=pich,
+
+            option=option,
+
+            v={x,y,z},
+
+        }
+
+
+
+RF.addFunction(f,v)
+
+
+
+
+
+@透明度
+
+--track0:透明度,-100,100,0
+
+--track3:範囲ms,0,10000,0
+
+--dialog:波形種類,_1="1";乗算種類,_4="01";イージング,_7=1;サイズ固定/chk,_10=0;対象,_11={0};音程/chk,_14=0;オプション,_15=0;
+
+
+
+local RF=require("RtAv2Function")
+
+local RtA=require("RtAv2")
+
+
+
+local x = obj.track0
+
+local range = obj.track3/1000
+
+
+
+local px = _1 or "0"
+
+px = (px=="") and "0" or px 
+
+
+
+local hx = _4 or "0"
+
+hx = (hx=="") and "0" or hx 
+
+
+
+local ex = _7 or  1
+
+
+
+local fixed = _10 or 0
+
+
+
+local tx = _11  or {0}
+
+tx = (RtA.type(tx)=="number") and {tx} or tx
+
+
+
+local pich=_14 or 0
+
+local option=_15 or 0
+
+
+
+
+
+local function  f(rpp,info,data)
+
+    
+
+    local pos=RF.getXYZ(rpp,info,data)
+
+    pos[1]=RF.ALPHA(pos[1])
+
+
+
+    obj.alpha=obj.alpha*pos[1]
+
+    obj.alpha=math.min(obj.alpha,1)
+
+    if(data.fixed~=0)then
+
+        RF.draw()
+
+    end
+
+end
+
+
+
+local v={
+
+            p={px},
+
+            h={hx},
+
+            e={ex},
+
+            t={tx},
+
+            range=range,fixed=fixed,pich=pich,
+
+            option=option,
+
+            v={x},
+
+        }
+
+
+
+RF.addFunction(f,v)
+
+
+
+
+
+@test
+
+
+
+--track0:rx,-4000,4000,0
+
+--track1:ry,-4000,4000,0
+
+--track2:rz,-4000,4000,0
+
+--check0:0,0
+
+
+
+local x,y=50,100
+
+local RF=require("RtAv2Function")
+
+local rotationPos=RF.rotationPos
+
+
+
+if(obj.check0)then
+
+    obj.effect("拡大率","X",x,"Y",y)
+
+    obj.rx,obj.ry,obj.rz=obj.track0,obj.track1,obj.track2
+
+    obj.draw()
+
+else
+
+
+
+    local rx,ry,rz=obj.track0,obj.track1,obj.track2
+
+
+
+    local w,h=(obj.w*(x/100))/2,(obj.h*(y/100))/2
+
+    local x0,y0,z0 = rotationPos(-w,-h,0,rx,ry,rz)
+
+    local x1,y1,z1 = rotationPos( w,-h,0,rx,ry,rz)
+
+    local x2,y2,z2 = rotationPos( w, h,0,rx,ry,rz)
+
+    local x3,y3,z3 = rotationPos(-w, h,0,rx,ry,rz)
+
+    obj.drawpoly(
+
+        x0,y0,z0,
+
+        x1,y1,z1,
+
+        x2,y2,z2,
+
+        x3,y3,z3 
+
+   )
+
+
+
+end

@@ -1,0 +1,323 @@
+--[[
+
+
+
+    RtAv2(v1.00)
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    @RtAv2(読込系).anm
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    rppを読み込んで反転やら移動やら回転やらをするスクリプト
+
+    RtAv2のオブジェクト書き換えのスクリプト
+
+    
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    使い方などはこのサイトを参考にしてください。
+
+    https://scrapbox.io/nanikani-shugo/RtAv2
+
+
+
+---------------------------------------------------------------------------------------------------
+
+
+
+    2019/03/25  v1-1.00     REAPER to AviUtl配布
+
+
+
+    2021/08/10  v2-1.00     完成
+
+
+
+    by.7539
+
+]]
+
+
+
+
+
+
+
+
+
+@動画
+
+--track0:開始ms,0,100000,0
+
+--track1:速度,0,10,1
+
+--track2:範囲ms,0,100000,0
+
+--dialog:パス,_1=nil;開始ms,_2=nil;速度,_3=nil;範囲ms,_32=nil;逆再生,_4="00";アイテムで非表示/chk,_5=0;終了後非表示/chk,_6=0;音程/chk,_7=0;オプション,_8=0;
+
+
+
+local RF=require("RtAv2Function")
+
+local RtA=require("RtAv2")
+
+
+
+
+
+
+
+local path=_1 or ""
+
+local start2=_2 
+
+local speed2=_3
+
+local range2=_32
+
+path = (RtA.type(path)=="table") and path or {path}
+
+
+
+local start=obj.track0
+
+if(RtA.type(start2)=="table")then
+
+    start=start2
+
+end
+
+
+
+local speed=obj.track1
+
+if(RtA.type(speed2)=="table")then
+
+    speed=speed2
+
+end
+
+
+
+local range=obj.track2
+
+if(RtA.type(range2)=="table")then
+
+    range=range2
+
+end
+
+
+
+
+
+local re=_4 or "0"
+
+local type1=_5 or 0
+
+local type2=_6 or 0
+
+local pich = _7 or 0
+
+local option = _8 or 0
+
+
+
+local function f(rpp,info,data)
+
+    
+
+    local path=data.path
+
+ 
+
+    if(RtA.type(path)=="table")then path=path[info.i] or path[1] end
+
+    if(RtA.isOpen(path)==false)then return false end
+
+
+
+    local st=data.start
+
+    if(RtA.type(st)=="table")then st=st[info.i] or 0 end
+
+    st=st/1000
+
+
+
+    local sd=data.speed
+
+    if(RtA.type(sd)=="table")then sd=sd[info.i] or 0 end
+
+    
+
+    local rg=data.range
+
+    if(RtA.type(rg)=="table")then rg=rg[info.i] or 0 end
+
+    rg=rg/1000
+
+
+
+    local c1,c2
+
+
+
+    if(data.pich==0)then
+
+        if(data.option==0)then
+
+            c1,c2=RF.timeItemNum(rpp.track[info.track].item,info.time)
+
+        elseif(data.option==1)then
+
+            c1,c2=info.i,info.i
+
+        end
+
+    elseif(data.pich==1)then
+
+        if(data.option==0)then
+
+            c1,c2=RF.timeItemNumPich(rpp.track[info.track].item,info.time)
+
+        elseif(data.option==1)then
+
+            c1,c2=RF.ItemNumPich(rpp.track[info.track].item,info.i)
+
+        end
+
+    end
+
+
+
+    if(c1==0)then 
+
+        obj.load("movie",path,st)
+
+        return 
+
+    end
+
+    local length=rpp.track[info.track].item[c1].length
+
+    local t=info.time-rpp.track[info.track].item[c1].pos
+
+    if(t>length and data.type1==1)then
+
+        return false
+
+    end
+
+    if(range==0)then
+
+        t=t*sd+st
+
+        local movieTime=obj.load("movie",path,t)
+
+        if(movieTime<t)then
+
+            if(data.type2==0)then
+
+                obj.load("movie",path,movieTime)
+
+            else
+
+                obj.effect("透明度","透明度",100)
+
+                return false
+
+            end
+
+        end
+
+    else
+
+        local s2nc=RF.string2numberCycle
+
+        local i=s2nc(data.re,c2)
+
+        if(i==0)then
+
+            t=((t/length)*rg)+st
+
+            local movieTime=obj.load("movie",path,t)
+
+            if(movieTime<rg)then
+
+                t=((t/length)*movieTime)+st
+
+                obj.load("movie",path,t)
+
+            end
+
+        else
+
+            t=math.min(t,length)
+
+            t=((1-(t/length))*rg)+st
+
+            local movieTime=obj.load("movie",path,t)
+
+            if(movieTime<rg)then
+
+                t=((1-(t/length))*movieTime)+st
+
+                obj.load("movie",path,t)
+
+            end
+
+        end
+
+    end    
+
+end
+
+
+
+
+
+RF.addFunction(f,{path=path,start=start,speed=speed,range=range,re=re,type1=type1,type2=type2,pich=pich,option=option})
+
+
+
+
+
+@エフェクトリセット
+
+
+
+local RF=require("RtAv2Function")
+
+local RtA=require("RtAv2")
+
+
+
+
+
+
+
+
+
+local function f(rpp,info,data)
+
+    obj.copybuffer("obj","cache:RtAv2Cache")
+
+end
+
+
+
+RF.addFunction(f,{})
