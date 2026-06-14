@@ -231,6 +231,16 @@ for src_name, dest_name in script_mappings.items():
             print(f"Processed and Deployed Script: {dest_name} to {script_root}")
         except Exception as e:
             print(f"Failed to deploy Script: {dest_name} to {script_root}: {e}")
+            
+    # Also save the compiled .anm2 to scratch_dir for packaging
+    scratch_dest_path = os.path.join(scratch_dir, dest_name)
+    try:
+        with open(scratch_dest_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print(f"Saved compiled script {dest_name} to scratch_dir")
+    except Exception as e:
+        print(f"Failed to save {dest_name} to scratch_dir: {e}")
+
 
 # Convert and Deploy Presets & Object Aliases
 base_exa_path = "H:\\eizousamasama\\あｓふぁｓｆｓだ\\RtAv2"
@@ -414,12 +424,7 @@ def update_aviutl2_ini(object_names, effect_names=None, label_name="RtAv2"):
     updated_sections = set()
     i = 0
     
-    remove_sections = {
-        "Effect.ラスター@RtAv2(エフェクト)",
-        "Effect.方向ブラー@RtAv2(エフェクト)",
-        "Effect.グロー@RtAv2(エフェクト)",
-        "Effect.クリッピング@RtAv2(エフェクト)"
-    }
+    remove_sections = set()
     
     while i < len(lines):
         line = lines[i]
@@ -526,7 +531,18 @@ def update_aviutl2_ini(object_names, effect_names=None, label_name="RtAv2"):
     except Exception as e:
         print(f"Failed to update aviutl2.ini: {e}")
 
-effects_to_label = []
+effects_to_label = [
+    "反転@RtAv2(エフェクト)",
+    "座標@RtAv2(エフェクト)",
+    "回転@RtAv2(エフェクト)",
+    "拡大率@RtAv2(エフェクト)",
+    "透明度@RtAv2(エフェクト)",
+    "ラスター@RtAv2(エフェクト)",
+    "方向ブラー@RtAv2(エフェクト)",
+    "グロー@RtAv2(エフェクト)",
+    "クリッピング@RtAv2(エフェクト)",
+    "斜めクリッピング@RtAv2(エフェクト)"
+]
 update_aviutl2_ini(created_object_names, effect_names=effects_to_label)
 
 print("Deployment and Conversion successfully completed!")

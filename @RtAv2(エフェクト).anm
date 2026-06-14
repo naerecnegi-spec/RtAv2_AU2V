@@ -777,17 +777,276 @@ else
     local x3,y3,z3 = rotationPos(-w, h,0,rx,ry,rz)
 
     obj.drawpoly(
-
         x0,y0,z0,
-
         x1,y1,z1,
-
         x2,y2,z2,
-
         x3,y3,z3 
-
    )
 
-
-
 end
+
+
+@ラスター
+--track0:横幅,0,2000,0
+--track1:高さ,0,2000,0
+--track2:周期,0,100,0
+--track3:範囲ms,0,10000,0
+--dialog:連動-横,_1="1";-縦,_2="1";-周,_3="1";ターゲット-横,_4="01";-縦,_5="01";-周,_6="01";イージング-横,_7=1;-縦,_8=1;-周,_9=1;サイズ固定/chk,_10=0;対象トラック-横,_11={0};-縦,_12={0};-周,_13={0};ピッチ/chk,_14=0;オプション,_15=0;縦ラスター/chk,_16=0;ランダム幅/chk,_17=0;
+
+local RF=require("RtAv2Function")
+local RtA=require("RtAv2")
+
+local x,y,z = obj.track0,obj.track1,obj.track2
+local range = obj.track3/1000
+
+local px,py,pz = _1 or "0",_2 or "0",_3 or "0"
+px,py,pz = (px=="") and "0" or px , (py=="") and "0" or py , (pz=="") and "0" or pz
+
+local hx,hy,hz = _4 or "0",_5 or "0",_6 or "0"
+hx,hy,hz = (hx=="") and "0" or hx , (hy=="") and "0" or hy , (hz=="") and "0" or hz
+
+local ex,ey,ez = _7 or 1 ,_8 or 1 ,_9 or 1
+local fixed = _10 or 0
+
+local tx,ty,tz = _11 or {0},_12 or {0},_13 or {0}
+tx = (RtA.type(tx)=="number") and {tx} or tx
+ty = (RtA.type(ty)=="number") and {ty} or ty
+tz = (RtA.type(tz)=="number") and {tz} or tz
+
+local pich=_14 or 0
+local option=_15 or 0
+
+local vert = _16 or 0
+local rand = _17 or 0
+
+local function f(rpp,info,data)
+    local pos=RF.getXYZ(rpp,info,data)
+    obj.effect("ラスター", "横幅", pos[1], "高さ", pos[2], "周期", pos[3], "縦ラスター", data.vert, "ランダム幅", data.rand)
+    
+    if(data.fixed~=0)then
+        RF.draw()
+    end
+end
+
+local v={
+    p={px,py,pz},
+    h={hx,hy,hz},
+    e={ex,ey,ez},
+    t={tx,ty,tz},
+    range=range,fixed=fixed,pich=pich,
+    option=option,
+    vert=vert, rand=rand,
+    v={x,y,z},
+}
+
+RF.addFunction(f,v)
+
+
+@方向ブラー
+--track0:範囲,0,1000,0
+--track1:角度,-360,360,0
+--track3:範囲ms,0,10000,0
+--dialog:連動-範,_1="1";-角,_2="1";ターゲット-範,_4="01";-角,_5="01";イージング-範,_7=1;-角,_8=1;サイズ固定/chk,_10=0;対象トラック-範,_11={0};-角,_12={0};ピッチ/chk,_14=0;オプション,_15=0;
+
+local RF=require("RtAv2Function")
+local RtA=require("RtAv2")
+
+local x,y = obj.track0,obj.track1
+local range = obj.track3/1000
+
+local px,py = _1 or "0",_2 or "0"
+px,py = (px=="") and "0" or px , (py=="") and "0" or py
+
+local hx,hy = _4 or "0",_5 or "0"
+hx,hy = (hx=="") and "0" or hx , (hy=="") and "0" or hy
+
+local ex,ey = _7 or 1 ,_8 or 1
+local fixed = _10 or 0
+
+local tx,ty = _11 or {0},_12 or {0}
+tx = (RtA.type(tx)=="number") and {tx} or tx
+ty = (RtA.type(ty)=="number") and {ty} or ty
+
+local pich=_14 or 0
+local option=_15 or 0
+
+local function f(rpp,info,data)
+    local pos=RF.getXYZ(rpp,info,data)
+    obj.effect("方向ブラー", "範囲", pos[1], "角度", pos[2])
+    
+    if(data.fixed~=0)then
+        RF.draw()
+    end
+end
+
+local v={
+    p={px,py,"0"},
+    h={hx,hy,"01"},
+    e={ex,ey,1},
+    t={tx,ty,{0}},
+    range=range,fixed=fixed,pich=pich,
+    option=option,
+    v={x,y,0},
+}
+
+RF.addFunction(f,v)
+
+
+@グロー
+--track0:強さ,0,100,0
+--track1:ぼかし,0,100,0
+--track3:範囲ms,0,10000,0
+--dialog:連動-強,_1="1";-ぼ,_2="1";ターゲット-強,_4="01";-ぼ,_5="01";イージング-強,_7=1;-ぼ,_8=1;サイズ固定/chk,_10=0;対象トラック-強,_11={0};-ぼ,_12={0};ピッチ/chk,_14=0;オプション,_15=0;
+
+local RF=require("RtAv2Function")
+local RtA=require("RtAv2")
+
+local x,y = obj.track0,obj.track1
+local range = obj.track3/1000
+
+local px,py = _1 or "0",_2 or "0"
+px,py = (px=="") and "0" or px , (py=="") and "0" or py
+
+local hx,hy = _4 or "0",_5 or "0"
+hx,hy = (hx=="") and "0" or hx , (hy=="") and "0" or hy
+
+local ex,ey = _7 or 1 ,_8 or 1
+local fixed = _10 or 0
+
+local tx,ty = _11 or {0},_12 or {0}
+tx = (RtA.type(tx)=="number") and {tx} or tx
+ty = (RtA.type(ty)=="number") and {ty} or ty
+
+local pich=_14 or 0
+local option=_15 or 0
+
+local function f(rpp,info,data)
+    local pos=RF.getXYZ(rpp,info,data)
+    obj.effect("グロー", "強さ", pos[1], "ぼかし", pos[2])
+    
+    if(data.fixed~=0)then
+        RF.draw()
+    end
+end
+
+local v={
+    p={px,py,"0"},
+    h={hx,hy,"01"},
+    e={ex,ey,1},
+    t={tx,ty,{0}},
+    range=range,fixed=fixed,pich=pich,
+    option=option,
+    v={x,y,0},
+}
+
+RF.addFunction(f,v)
+
+
+@クリッピング
+--track0:上,0,2000,0
+--track1:下,0,2000,0
+--track2:左,0,2000,0
+--track3:右,0,2000,0
+--dialog:範囲ms,_1=0;連動-上,_2="1";-下,_3="1";-左,_4="1";-右,_5="1";ターゲット-上,_6="01";-下,_7="01";-左,_8="01";-右,_9="01";イージング-上,_10=1;-下,_11=1;-左,_12=1;-右,_13=1;サイズ固定/chk,_14=0;対象トラック-上,_15={0};-下,_16={0};-左,_17={0};-右,_18={0};ピッチ/chk,_19=0;オプション,_20=0;
+
+local RF=require("RtAv2Function")
+local RtA=require("RtAv2")
+
+local x,y,z,w = obj.track0,obj.track1,obj.track2,obj.track3
+local range = (_1 or 0)/1000
+
+local px,py,pz,pw = _2 or "0",_3 or "0",_4 or "0",_5 or "0"
+px,py,pz,pw = (px=="") and "0" or px , (py=="") and "0" or py , (pz=="") and "0" or pz , (pw=="") and "0" or pw
+
+local hx,hy,hz,hw = _6 or "01",_7 or "01",_8 or "01",_9 or "01"
+hx,hy,hz,hw = (hx=="") and "0" or hx , (hy=="") and "0" or hy , (hz=="") and "0" or hz , (hw=="") and "0" or hw
+
+local ex,ey,ez,ew = _10 or 1 ,_11 or 1 ,_12 or 1 ,_13 or 1
+local fixed = _14 or 0
+
+local tx,ty,tz,tw = _15 or {0},_16 or {0},_17 or {0},_18 or {0}
+tx = (RtA.type(tx)=="number") and {tx} or tx
+ty = (RtA.type(ty)=="number") and {ty} or ty
+tz = (RtA.type(tz)=="number") and {tz} or tz
+tw = (RtA.type(tw)=="number") and {tw} or tw
+
+local pich=_19 or 0
+local option=_20 or 0
+
+local function f(rpp,info,data)
+    local pos=RF.getXYZ(rpp,info,data)
+    obj.effect("クリッピング", "上", pos[1], "下", pos[2], "左", pos[3], "右", pos[4])
+    
+    if(data.fixed~=0)then
+        RF.draw()
+    end
+end
+
+local v={
+    p={px,py,pz,pw},
+    h={hx,hy,hz,hw},
+    e={ex,ey,ez,ew},
+    t={tx,ty,tz,tw},
+    range=range,fixed=fixed,pich=pich,
+    option=option,
+    v={x,y,z,w},
+}
+
+RF.addFunction(f,v)
+
+
+@斜めクリッピング
+--track0:中心X,-2000,2000,0
+--track1:中心Y,-2000,2000,0
+--track2:角度,-360,360,0
+--track3:範囲ms,0,10000,0
+--dialog:ぼかし,_1=0;幅,_2=0;逆モード/chk,_3=0;連動-X,_4="1";-Y,_5="1";-角,_6="1";ターゲット-X,_7="01";-Y,_8="01";-角,_9="01";イージング-X,_10=1;-Y,_11=1;-角,_12=1;サイズ固定/chk,_13=0;対象トラック-X,_14={0};-Y,_15={0};-角,_16={0};ピッチ/chk,_17=0;オプション,_18=0;
+
+local RF=require("RtAv2Function")
+local RtA=require("RtAv2")
+
+local x,y,z = obj.track0,obj.track1,obj.track2
+local range = obj.track3/1000
+
+local px,py,pz = _4 or "0",_5 or "0",_6 or "0"
+px,py,pz = (px=="") and "0" or px , (py=="") and "0" or py , (pz=="") and "0" or pz
+
+local hx,hy,hz = _7 or "01",_8 or "01",_9 or "01"
+hx,hy,hz = (hx=="") and "0" or hx , (hy=="") and "0" or hy , (hz=="") and "0" or hz
+
+local ex,ey,ez = _10 or 1 ,_11 or 1 ,_12 or 1
+local fixed = _13 or 0
+
+local tx,ty,tz = _14 or {0},_15 or {0},_16 or {0}
+tx = (RtA.type(tx)=="number") and {tx} or tx
+ty = (RtA.type(ty)=="number") and {ty} or ty
+tz = (RtA.type(tz)=="number") and {tz} or tz
+
+local pich=_17 or 0
+local option=_18 or 0
+
+local blur = _1 or 0
+local width = _2 or 0
+local inv = _3 or 0
+
+local function f(rpp,info,data)
+    local pos=RF.getXYZ(rpp,info,data)
+    obj.effect("斜めクリッピング", "中心X", pos[1], "中心Y", pos[2], "角度", pos[3], "ぼかし", data.blur, "幅", data.width, "逆モード", data.inv)
+    
+    if(data.fixed~=0)then
+        RF.draw()
+    end
+end
+
+local v={
+    p={px,py,pz},
+    h={hx,hy,hz},
+    e={ex,ey,ez},
+    t={tx,ty,tz},
+    range=range,fixed=fixed,pich=pich,
+    option=option,
+    blur=blur, width=width, inv=inv,
+    v={x,y,z},
+}
+
+RF.addFunction(f,v)
