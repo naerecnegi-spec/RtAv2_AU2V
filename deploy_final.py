@@ -12,6 +12,12 @@ alias_dir = os.path.join(aviutl_dir, "Alias")
 legacy_rtav2_alias_dir = os.path.join(alias_dir, "RtAv2")
 preset_dir = os.path.join(aviutl_dir, "Preset")
 
+# Scratch directories
+scratch_preset_dir = os.path.join(scratch_dir, "Preset")
+scratch_alias_dir = os.path.join(scratch_dir, "Alias")
+os.makedirs(scratch_preset_dir, exist_ok=True)
+os.makedirs(scratch_alias_dir, exist_ok=True)
+
 # Create directories
 for script_root in script_roots:
     os.makedirs(script_root, exist_ok=True)
@@ -29,6 +35,14 @@ files_to_remove = [
     "@RtAv2(描画系).anm2",
     "@RtAv2(読込系).anm",
     "@RtAv2(読込系).anm2",
+    "RtAv2.anm",
+    "RtAv2.anm2",
+    "RtAv2(エフェクト).anm",
+    "RtAv2(エフェクト).anm2",
+    "RtAv2(描画系).anm",
+    "RtAv2(描画系).anm2",
+    "RtAv2(読込系).anm",
+    "RtAv2(読込系).anm2",
     "RtAv2.lua",
     "RtAv2Function.lua"
 ]
@@ -175,10 +189,10 @@ for script_root in script_roots:
 package_path_prepend = 'package.path = package.path .. ";C:\\\\Program Files\\\\AviUtl2\\\\script\\\\?.lua;C:\\\\ProgramData\\\\aviutl2\\\\Script\\\\?.lua"\n'
 
 script_mappings = {
-    "@RtAv2.anm": "@RtAv2.anm2",
-    "@RtAv2(描画系).anm": "@RtAv2(描画系).anm2",
-    "@RtAv2(読込系).anm": "@RtAv2(読込系).anm2",
-    "@RtAv2(エフェクト).anm": "@RtAv2(エフェクト).anm2"
+    "@RtAv2.anm": "RtAv2.anm2",
+    "@RtAv2(描画系).anm": "RtAv2(描画系).anm2",
+    "@RtAv2(読込系).anm": "RtAv2(読込系).anm2",
+    "@RtAv2(エフェクト).anm": "RtAv2(エフェクト).anm2"
 }
 
 for src_name, dest_name in script_mappings.items():
@@ -191,13 +205,12 @@ for src_name, dest_name in script_mappings.items():
     lines = content.splitlines()
     new_lines = []
     
-    # Add to the very top as fallback
-    new_lines.append(package_path_prepend.strip())
+
     
     in_header = False
     for line in lines:
         line_strip = line.strip()
-        if line_strip.startswith('@') and not line_strip.startswith('@@'):
+        if line.startswith('@') and not line.startswith('@@'):
             in_header = True
             new_lines.append(line)
             continue
@@ -220,7 +233,7 @@ for src_name, dest_name in script_mappings.items():
     new_content = "\n".join(new_lines)
     
     # If RtAv2.anm2, update --file: to --file@file:RPPファイル
-    if dest_name == "@RtAv2.anm2":
+    if dest_name == "RtAv2.anm2":
         new_content = new_content.replace("--file:", "--file@file:RPPファイル")
         
     for script_root in script_roots:
@@ -293,6 +306,14 @@ if effect_alias_dir and os.path.exists(effect_alias_dir):
                 print(f"Created Preset: {dest_filename}")
             except Exception as e:
                 print(f"Failed to create Preset: {dest_filename}: {e}")
+                
+            # Write to Scratch Preset
+            scratch_preset_path = os.path.join(scratch_preset_dir, dest_filename)
+            try:
+                with open(scratch_preset_path, "w", encoding="utf-8") as out_f:
+                    out_f.write("\n".join(preset_content) + "\n")
+            except Exception as e:
+                print(f"Failed to create scratch Preset: {dest_filename}: {e}")
 
 created_object_names = []
 
@@ -301,11 +322,11 @@ def convert_object_alias(src_dir, filename):
     preset_name = os.path.splitext(filename)[0]
     
     sections = parse_ini(filepath)
-    rtav2_alias_dir = os.path.join(alias_dir, "RtAv2")
+    rtav2_alias_dir = alias_dir
     os.makedirs(rtav2_alias_dir, exist_ok=True)
     dest_filename = f"{preset_name}.object"
     dest_path = os.path.join(rtav2_alias_dir, dest_filename)
-    created_object_names.append(f"RtAv2/{preset_name}")
+    created_object_names.append(preset_name)
     
     object_content = []
     vo = sections.get("vo", {})
@@ -316,14 +337,20 @@ def convert_object_alias(src_dir, filename):
     object_content.append(f"frame=0,{length_val}")
     
     k = 0
+    out_k = 0
     while True:
         sec_name = f"vo.{k}"
         if sec_name not in sections:
             break
         vo_k = sections[sec_name]
-        object_content.append(f"[0.{k}]")
         
         _name = vo_k.get("_name", "")
+        if _name == "スクリプト制御" or "XKNvg" in _name:
+            k += 1
+            continue
+            
+        object_content.append(f"[0.{out_k}]")
+        
         if "アニメーション効果" in _name or "Aj" in _name:
             raw_script_name = vo_k.get("name", "")
             filter_name = get_filter_name(raw_script_name)
@@ -360,6 +387,9 @@ def convert_object_alias(src_dir, filename):
                 elif key == "color":
                     object_content.append(f"色={val}")
                     continue
+            
+            if key == "_1" and val == "RtAv2Path":
+                val = ""
             object_content.append(f"{key}={val}")
             
         if is_shape:
@@ -370,14 +400,7 @@ def convert_object_alias(src_dir, filename):
                 object_content.append("色=ffffff")
             object_content.append("角を丸くする=0")
             
-        if _name == "スクリプト制御" or "XKNvg" in _name:
-            hex_text = vo_k.get("text", "")
-            decoded_text = decode_hex_text(hex_text)
-            if decoded_text:
-                formatted_text = f"<?{decoded_text}?>"
-                object_content.append(f"text={formatted_text}")
-                object_content.append(f"スクリプト={formatted_text}")
-                
+        out_k += 1
         k += 1
         
     try:
@@ -386,6 +409,14 @@ def convert_object_alias(src_dir, filename):
         print(f"Created Object Alias: {dest_filename}")
     except Exception as e:
         print(f"Failed to create Object Alias: {dest_filename}: {e}")
+        
+    # Write to Scratch Alias
+    scratch_dest_path = os.path.join(scratch_alias_dir, dest_filename)
+    try:
+        with open(scratch_dest_path, "w", encoding="utf-8") as out_f:
+            out_f.write("\n".join(object_content) + "\n")
+    except Exception as e:
+        print(f"Failed to create scratch Object Alias: {dest_filename}: {e}")
 
 for folder_dir in [obj_alias_dir, obj_preset_dir]:
     if folder_dir and os.path.exists(folder_dir):
@@ -403,17 +434,13 @@ def update_aviutl2_ini(object_names, effect_names=None, label_name="RtAv2"):
     with open(ini_path, "rb") as f:
         raw_data = f.read()
     
-    # Detect encoding: Check BOM for UTF-8 first, otherwise default to CP932 (Shift_JIS)
-    if raw_data.startswith(b'\xef\xbb\xbf'):
-        encoding = "utf-8"
+    # Detect encoding: Try UTF-8 first (since aviutl2.ini is often UTF-8 without BOM)
+    try:
         text = raw_data.decode("utf-8")
-    else:
-        try:
-            text = raw_data.decode("cp932")
-            encoding = "cp932"
-        except Exception:
-            text = raw_data.decode("utf-8", errors="replace")
-            encoding = "utf-8"
+        encoding = "utf-8"
+    except UnicodeDecodeError:
+        text = raw_data.decode("cp932", errors="surrogateescape")
+        encoding = "cp932"
             
     if not text:
         print("Failed to decode aviutl2.ini")

@@ -66,7 +66,7 @@
 
 --track2:範囲ms,0,100000,0
 
---dialog:パス,_1=nil;開始ms,_2=nil;速度,_3=nil;範囲ms,_32=nil;逆再生,_4="00";アイテムで非表示/chk,_5=0;終了後非表示/chk,_6=0;音程/chk,_7=0;オプション,_8=0;
+--dialog:パス,_1="";開始ms,_2=nil;速度,_3=nil;範囲ms,_32=nil;逆再生,_4="00";アイテムで非表示/chk,_5=0;終了後非表示/chk,_6=0;音程/chk,_7=0;オプション,_8=0;
 
 
 
@@ -80,7 +80,31 @@ local RtA=require("RtAv2")
 
 
 
-local path=_1 or ""
+print("[RtAv2-Debug] _G.RtAv2Path = " .. tostring(_G.RtAv2Path))
+print("[RtAv2-Debug] RtAv2Path = " .. tostring(RtAv2Path))
+local path = _1 or _G.RtAv2Path or RtAv2Path or ""
+
+local function trim(s)
+    if not s then return "" end
+    return s:match("^%s*(.-)%s*$")
+end
+
+local function unquote(s)
+    if not s then return "" end
+    return s:gsub('^["\']', ''):gsub('["\']$', '')
+end
+
+if type(path) == "string" then
+    if path:find(",") then
+        local tbl = {}
+        for item in path:gmatch("[^,]+") do
+            table.insert(tbl, unquote(trim(item)))
+        end
+        path = tbl
+    else
+        path = { unquote(trim(path)) }
+    end
+end
 
 local start2=_2 
 
@@ -138,15 +162,27 @@ local option = _8 or 0
 
 local function f(rpp,info,data)
 
-    
-
     local path=data.path
-
- 
 
     if(RtA.type(path)=="table")then path=path[info.i] or path[1] end
 
-    if(RtA.isOpen(path)==false)then return false end
+    print("[RtAv2-Debug] (f) path before eval = " .. tostring(path))
+    print("[RtAv2-Debug] (f) _G.RtAv2Path = " .. tostring(_G.RtAv2Path))
+    print("[RtAv2-Debug] (f) RtAv2Path = " .. tostring(RtAv2Path))
+
+    if not path or path == "" or path == "nil" then
+        path = _G.RtAv2Path or RtAv2Path or ""
+    elseif path == "RtAv2Path" then
+        path = _G.RtAv2Path or RtAv2Path or ""
+    elseif type(path) == "string" and _G[path] then
+        path = _G[path]
+    end
+
+    print("[RtAv2-Debug] (f) path after eval = " .. tostring(path))
+    local is_op = RtA.isOpen(path)
+    print("[RtAv2-Debug] (f) isOpen = " .. tostring(is_op))
+
+    if(is_op==false)then return false end
 
 
 
