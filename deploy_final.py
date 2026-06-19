@@ -189,10 +189,10 @@ for script_root in script_roots:
 package_path_prepend = 'package.path = package.path .. ";C:\\\\Program Files\\\\AviUtl2\\\\script\\\\?.lua;C:\\\\ProgramData\\\\aviutl2\\\\Script\\\\?.lua"\n'
 
 script_mappings = {
-    "@RtAv2.anm": "RtAv2.anm2",
-    "@RtAv2(描画系).anm": "RtAv2(描画系).anm2",
-    "@RtAv2(読込系).anm": "RtAv2(読込系).anm2",
-    "@RtAv2(エフェクト).anm": "RtAv2(エフェクト).anm2"
+    "@RtAv2.anm": "@RtAv2.anm2",
+    "@RtAv2(描画系).anm": "@RtAv2(描画系).anm2",
+    "@RtAv2(読込系).anm": "@RtAv2(読込系).anm2",
+    "@RtAv2(エフェクト).anm": "@RtAv2(エフェクト).anm2"
 }
 
 for src_name, dest_name in script_mappings.items():
@@ -204,8 +204,6 @@ for src_name, dest_name in script_mappings.items():
     # Process line-by-line to insert package_path_prepend after parameters definition
     lines = content.splitlines()
     new_lines = []
-    
-
     
     in_header = False
     for line in lines:
@@ -232,8 +230,8 @@ for src_name, dest_name in script_mappings.items():
             
     new_content = "\n".join(new_lines)
     
-    # If RtAv2.anm2, update --file: to --file@file:RPPファイル
-    if dest_name == "RtAv2.anm2":
+    # If @RtAv2.anm2, update --file: to --file@file:RPPファイル
+    if dest_name == "@RtAv2.anm2":
         new_content = new_content.replace("--file:", "--file@file:RPPファイル")
         
     for script_root in script_roots:
